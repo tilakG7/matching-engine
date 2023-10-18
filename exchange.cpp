@@ -28,10 +28,11 @@ int main() {
     std::cout << "Time: " << t << std::endl;
 
     Order o1{OrderType::kMarket, 0, false, 2, 430.0, t};
-    Order o2{{OrderType::kMarket, 0, false, 2, 430.1, t};
+    Order o2{OrderType::kMarket, 0, false, 2, 430.1, t};
     OrderBook ob{};
     ob.addOrder(o1);
     ob.addOrder(o2);
+    ob.print();
 
 
 }

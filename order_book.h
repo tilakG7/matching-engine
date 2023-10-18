@@ -13,8 +13,8 @@ bool fp_equals(double a, double b) {
 // This is a binary predicate function for determining ordering of elements in 
 // a container
 // @returns - true if a should be placed before b, else false
-struct compareOrder {
-    bool operator()(const Order& a, const Order& b) {
+struct OrderComp {
+    bool operator()(const Order& a, const Order& b) const {
         if(a.is_bid) {
             if (fp_equals(a.target_price, b.target_price)) {
                 return (a.time_received < b.time_received);
@@ -35,9 +35,25 @@ struct compareOrder {
 // Only orders that are active make it into the orderbook
 class OrderBook {
 public:
+    OrderBook() = default;
+
     void addOrder(Order my_order) {
-        std::set.emplace(my_order);
+        orders_.emplace(my_order);
+    }
+
+    void print() {
+        std::cout << "Sequentially printing orders: \n";
+        for (auto& order : orders_) {
+            std::cout << "type: " << kOrderTypeStrings[
+                static_cast<std::underlying_type_t<OrderType>>(order.type)] << std::endl;
+            std::cout << "id: " << order.symbol_id << std::endl;
+            std::cout << (order.is_bid ? "bid" : "ask") << std::endl;
+            std::cout << "quantity: " << order.num << std::endl;
+            std::cout << "price: " << order.target_price << std::endl;
+            std::cout << "time: " << order.time_received << std::endl;
+            std::cout << "----------------------------------" << std::endl;
+        }
     }
 private:
-    std::set<Order, compareOrder> orders_(); // stores all orders
+    std::set<Order, OrderComp> orders_; // stores all orders
 };

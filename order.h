@@ -6,7 +6,15 @@ enum class OrderType : uint8_t {
     kMarket = 0,
     kLimit,
     kStop,
-    kStopLimit
+    kStopLimit,
+    kNumOrders,
+};
+
+const char* kOrderTypeStrings[] = {
+    "market",
+    "limit",
+    "stop",
+    "stop limit",
 };
 
 using namespace boost::posix_time;
