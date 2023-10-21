@@ -2,6 +2,11 @@
 
 #include "order_book.h"
 
+struct InstrumentInfo{
+    double price;     // price of instrument
+    std::string name; // name for instrument
+};
+
 class Exchange {
 public:
     Exchange() = default;
@@ -12,7 +17,9 @@ public:
     // get stock price
 private:
     OrderBook bid_book_{}; // order book for bid side
-    OrderBook ask_book_{}; // order book for buy side
+    OrderBook ask_book_{}; // order book for ask side
+    // maps id of financial instrument to struct containing more info
+    std::unordered_map<uint32_t, InstrumentInfo>  instrument_map_{};
 };
 
 

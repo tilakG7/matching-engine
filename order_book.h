@@ -4,7 +4,7 @@
 #include "order.h"
 
 // Returns true if 2 floating point types are equal
-// TODO: increase precision of comparison?
+// @todo: increase precision of comparison?
 bool fp_equals(double a, double b) {
     return (std::abs(a - b)) < 0.01; // true if differce is less than a cent
 }
@@ -22,7 +22,8 @@ struct OrderComp {
             // higher bids get to come first
             return (a.target_price > b.target_price);
         } 
-        // only orders must be ask
+        // if we reach this point, we know 
+        // we are dealing with orders "ask" orders
         if (fp_equals(a.target_price, b.target_price)) {
             return (a.time_received < b.time_received);
         }
