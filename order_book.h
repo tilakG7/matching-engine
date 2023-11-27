@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cmath>
 #include <set>
 
@@ -9,26 +11,26 @@ bool fp_equals(double a, double b) {
     return (std::abs(a - b)) < 0.01; // true if differce is less than a cent
 }
 
-// Returns true if order a should be placed before order b
+// Returns true if order A should be placed before order B
 // This is a binary predicate function for determining ordering of elements in 
 // a container
 // @returns - true if a should be placed before b, else false
-struct OrderComp {
+struct OrderCmp {
     bool operator()(const Order& a, const Order& b) const {
         if(a.is_bid) {
-            if (fp_equals(a.target_price, b.target_price)) {
+            if (fp_equals(a.limit_price, b.limit_price)) {
                 return (a.time_received < b.time_received);
             }
             // higher bids get to come first
-            return (a.target_price > b.target_price);
+            return (a.limit_price > b.limit_price);
         } 
         // if we reach this point, we know 
         // we are dealing with orders "ask" orders
-        if (fp_equals(a.target_price, b.target_price)) {
+        if (fp_equals(a.limit_price, b.limit_price)) {
             return (a.time_received < b.time_received);
         }
         // lower asks get to come first
-        return (a.target_price < b.target_price);
+        return (a.limit_price < b.limit_price);
     }
 };
 
@@ -50,11 +52,11 @@ public:
             std::cout << "id: " << order.symbol_id << std::endl;
             std::cout << (order.is_bid ? "bid" : "ask") << std::endl;
             std::cout << "quantity: " << order.num << std::endl;
-            std::cout << "price: " << order.target_price << std::endl;
+            std::cout << "price: " << order.limit_price << std::endl;
             std::cout << "time: " << order.time_received << std::endl;
             std::cout << "----------------------------------" << std::endl;
         }
     }
 private:
-    std::set<Order, OrderComp> orders_; // stores all orders
+    std::set<Order, OrderCmp> orders_; // stores all orders
 };
