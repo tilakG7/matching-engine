@@ -26,7 +26,7 @@ struct Order {
     uint32_t num{};             // quantity of shares to purchase
     double limit_price{};       // only for certain order types
     double stop_price{};        // only for stop orders
-    bool must_exceed_stop{};    // only for stop orders
+    bool must_exceed_stop{};    // only for stop orders 
     ptime time_received{};      // time the order was received
 };
 
