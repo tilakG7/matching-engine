@@ -30,16 +30,16 @@ public:
     ~BaseOrder() = default; // default destructor
 
     // prints relevant order details
-    void print() {
+    virtual void print() {
         cout << "Order #" << order_id_ << ": \n";
         cout << "Security ID: " << security_id_ << "\n";
         cout << "Type: " << kOrderTypeToStr[to_underlying(order_type_)] 
              << " order" << "\n";
         cout << (is_bid_ ? "Bid" : "Ask") << "\n";
         cout << "Time: " << timestamp_ << "\n";
+        cout << "---------------------------\n\n";
     }
 
-private:
     array<string, to_underlying(OrderType::kNumOrderTypes)> kOrderTypeToStr{
         "market",
         "stop",
