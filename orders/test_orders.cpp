@@ -21,12 +21,14 @@ int main(int argc, char *argv[]) {
     MarketOrder my_tesla_order(
         0,              // order ID
         11611510897llu, // security ID for tesla
+        339,            // quantity of shares
         true     
     );
 
     LimitOrder my_tesla_order_2(
         1,              // order ID
         11611510897llu, // security ID for tesla
+        954,            // quantity of shares
         false,          // not a bid
         250             // limit price
     );
@@ -34,6 +36,7 @@ int main(int argc, char *argv[]) {
     StopLimitOrder my_tesla_order_3(
         2,              // order ID
         11611510897llu, // security ID for tesla
+        1234,           // quantity of shares
         false,          // not a bid
         500,            // limit price 
         505,            // stop price
@@ -43,6 +46,7 @@ int main(int argc, char *argv[]) {
     StopOrder my_tesla_order_4(
         3,              // order ID
         11611510897llu, // security ID for tesla
+        432,            // quantity of shares
         true,           // bid
         555,            // stop price
         true            // must NOT exceed

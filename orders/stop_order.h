@@ -6,9 +6,10 @@
 class StopOrder : public MarketOrder {
 public:
     StopOrder() = delete;
-    StopOrder(uint64_t order_id, uint64_t security_id, bool is_bid, double stop_price, bool exceed) : 
+    StopOrder(uint64_t order_id, uint64_t security_id, uint64_t quantity,
+              bool is_bid, double stop_price, bool exceed) : 
               stop_price_{stop_price}, exceed_{exceed}, 
-              MarketOrder(order_id, security_id, is_bid) {
+              MarketOrder(order_id, security_id, quantity, is_bid) {
         order_type_ = OrderType::kStop;
     }
 

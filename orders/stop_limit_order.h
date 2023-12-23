@@ -7,10 +7,11 @@
 class StopLimitOrder : public LimitOrder {
 public:
     StopLimitOrder() = delete;
-    StopLimitOrder(uint64_t order_id, uint64_t security_id, bool is_bid, 
-                   double limit_price, double stop_price, bool exceed) : 
+    StopLimitOrder(uint64_t order_id, uint64_t security_id, uint64_t quantity,
+                   bool is_bid, double limit_price, double stop_price, 
+                   bool exceed) : 
               stop_price_{stop_price}, exceed_{exceed}, 
-              LimitOrder(order_id, security_id, is_bid, limit_price) {
+              LimitOrder(order_id, security_id, quantity, is_bid, limit_price) {
         order_type_ = OrderType::kStopLimit;
     }
     double stop_price_{};

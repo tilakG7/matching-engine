@@ -10,22 +10,31 @@
 using namespace std;
 using namespace boost::posix_time;
 
+// Types of orders supported by our exchange
+enum class OrderType : uint8_t {
+    kMarket = 0,
+    kStop,
+    kLimit,
+    kStopLimit,
+    kNumOrderTypes,
+};
+
+const array<string, 
+            to_underlying(OrderType::kNumOrderTypes)> kOrderTypeToStr{
+    "market",
+    "stop",
+    "limit",
+    "stop limit"
+};
 class BaseOrder {
 public:
-    // Types of orders supported by our exchange
-    enum class OrderType : uint8_t {
-        kMarket = 0,
-        kStop,
-        kLimit,
-        kStopLimit,
-        kNumOrderTypes,
-    };
+    
 
     BaseOrder() = delete; // cannot default construct this object
-    BaseOrder(uint64_t order_id, uint64_t security_id, OrderType order_type,
-              bool is_bid) 
+    BaseOrder(uint64_t order_id, uint64_t security_id, uint64_t quantity, 
+              OrderType order_type, bool is_bid) 
               : order_id_{order_id}, security_id_{security_id}, 
-              order_type_{order_type}, is_bid_{is_bid}, 
+                quantity_{quantity}, order_type_{order_type}, is_bid_{is_bid}, 
               timestamp_{microsec_clock::local_time()} {}
     ~BaseOrder() = default; // default destructor
 
@@ -33,6 +42,7 @@ public:
     virtual void print() {
         cout << "Order #" << order_id_ << ": \n";
         cout << "Security ID: " << security_id_ << "\n";
+        cout << "Quantity: " << quantity_ << "\n";
         cout << "Type: " << kOrderTypeToStr[to_underlying(order_type_)] 
              << " order" << "\n";
         cout << (is_bid_ ? "Bid" : "Ask") << "\n";
@@ -40,15 +50,9 @@ public:
         cout << "---------------------------\n\n";
     }
 
-    array<string, to_underlying(OrderType::kNumOrderTypes)> kOrderTypeToStr{
-        "market",
-        "stop",
-        "limit",
-        "stop limit"
-    };
-
     const uint64_t order_id_{};    // a unique identifier is given to each order
     const uint64_t security_id_{}; // identifies security that this order targets
+    uint64_t quantity_{};          // number of security to buy or sell
     OrderType order_type_{};       
     const bool is_bid_{};
     ptime timestamp_{};            // time the order was received       
