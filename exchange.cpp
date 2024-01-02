@@ -80,7 +80,7 @@ int main() {
          << "(3) Stop order\n"
          << "Enter a digit (0-3): ";
     uint8_t order_type{};
-    cin >> order_type;
+    cin >> order_type; 
 
     OrderType ot{static_cast<OrderType>(order_type)};
     cout << "You want to place a " << kOrderTypeToStr[to_underlying(ot)] << " order.\n";
