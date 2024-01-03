@@ -39,48 +39,82 @@ void printTime(ptime &&t) {
     std::cout << "clock right now: " << t << "\n";
 }
 
+// Goal for today:
+// 1. get the program to loop until valid security is entered
+// 2. get the program to loop until valid buy/sell is placed
+// 3. get the program to loop until valid share quantity is placed
+// 4. which order type
+
+
 int main() {
     Exchange e{};
 
-    std::string tckr{};
-    std::cout << "Enter the security you would like to buy: ";
-    std::cin >> tckr;
+    std::string ticker{};
+    do {
+        std::cout << "Enter security symbol: ";
+        std::cin >> ticker;
 
-    if(e.securityExists(tckr)) {
-        cout << "Great, security exists\n";
-    }
-    else {
-        cout << "security does not exists\n";
-    }
+        if(e.securityExists(ticker)) {
+            cout << "Verified.\n" << ticker << ".\nSecurity exists.\n";
+        }
+        else {
+            cout << "Error: invalid security. Try again.\n";
+        }
+    } while(!e.securityExists(ticker));
+
 
     
-    cout << "Would you like to buy or sell this security? (B/S): ";
-    char buy_or_sell{};
-    cin >> buy_or_sell;
     bool is_bid{};
-    if (buy_or_sell == 'B') {
-        is_bid = false;
-        cout << "You entered: BUY!\n";
-    } else if (buy_or_sell == 'S') {
-        is_bid = true;
-        cout << "You entered: SELL!\n";
-    } else {
-        cout << "Invalid\n";
-    }
+    std::string buy_or_sell{};
+    do {  
+        std::cout << "Buy or sell? (B/S): ";
+        std::cin >> buy_or_sell;
+        if (buy_or_sell == "B") {
+            is_bid = true;
+            cout << "Buying.\n";
+        } else if (buy_or_sell == "S") {
+            is_bid = false;
+            cout << "Selling.\n";
+        } else {
+            cout << "Invalid input. Try again.\n";
+        }
+    } while((buy_or_sell != "B") && (buy_or_sell != "S"));
 
-    cout << "Enter the quantity of shares to " << (is_bid ? "sell" : "buy") << ": ";
+    bool is_valid_quantity{};
     uint64_t quantity{};
-    cin >> quantity;
-    cout << "You entered: " << quantity << endl;
+    do {
+        cout << "Enter quantity to " << (is_bid ? "sell" : "buy") << ": ";
+        if(!(cin >> quantity)) {
+            std::cin.clear();  // Clear error flag
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Discard invalid input
+            std::cout << "Error, try again. Enter valid input.\n";
+        }
+        else {
+            cout << quantity << endl;
+            is_valid_quantity = true;
+        }
+    }while(!is_valid_quantity);
+    
+    int order_type{};
+    bool is_valid_order_type{};
+    do {
+        cout << "What kind of order is this? Choose: \n"
+            << "(0) Market\n"
+            << "(1) Limit\n"
+            << "(2) Stop limit\n"
+            << "(3) Stop order\n"
+            << "Enter a digit (0-3): ";
+        cin >> order_type;
+        if(!cin.good() || (order_type > 3) || (order_type < 0)) {
+            std::cin.clear();  // Clear error flag
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');  // Discard invalid input
+            std::cout << "Error, try again. Enter valid input.\n";
+        }
+        else {
+            is_valid_order_type = true;
+        }
+    } while(!is_valid_order_type);
 
-    cout << "What kind of order is this? Choose: \n"
-         << "(0) Market\n"
-         << "(1) Limit\n"
-         << "(2) Stop limit\n"
-         << "(3) Stop order\n"
-         << "Enter a digit (0-3): ";
-    uint8_t order_type{};
-    cin >> order_type; 
 
     OrderType ot{static_cast<OrderType>(order_type)};
     cout << "You want to place a " << kOrderTypeToStr[to_underlying(ot)] << " order.\n";
