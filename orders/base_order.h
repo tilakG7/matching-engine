@@ -40,7 +40,7 @@ public:
 
     // prints relevant order details
     virtual void print() {
-        cout << "Order #" << order_id_ << ": \n";
+        cout << "Order #" << order_id_ << "\n";
         cout << "Security ID: " << security_id_ << "\n";
         cout << "Quantity: " << quantity_ << "\n";
         cout << "Type: " << kOrderTypeToStr[to_underlying(order_type_)] 
