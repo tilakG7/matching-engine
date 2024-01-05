@@ -1,6 +1,7 @@
 #include <iostream>
 #include <set>
 #include <string>
+#include <vector>
 
 #include "common/template_helper.h"
 #include "orders/base_order.h"
@@ -59,7 +60,8 @@ private:
         {7, 703.37},
         {8, 344.47}
     };
-    // std::unordered_map<uint32_t, std::pair<StopOrderBook<true>, StopOrderBook<false>> inactive_orders_{};
+    
+    vector<unique_ptr> market_order_book_{};
 };
 
 
@@ -69,13 +71,6 @@ using namespace boost::posix_time;
 void printTime(ptime &&t) {
     std::cout << "clock right now: " << t << "\n";
 }
-
-// Goal for today:
-// 1. get the program to loop until valid security is entered
-// 2. get the program to loop until valid buy/sell is placed
-// 3. get the program to loop until valid share quantity is placed
-// 4. which order type
-
 
 int main() {
     Exchange e{};
@@ -231,44 +226,29 @@ int main() {
 
     order->print();
 
+    if(order->getOrderType == OrderType::kMarket) {
+        market_order_book_.push_back(move(order)); // use std::move to avoid uneccessary copyingxs 
+    }
+
+
+    
+    // What are the next steps once we have an order that needs to be placed?
+    // I guess it depends on the type of order.
+
+    // 1. How should market orders be stored?
+    //
+    // Market order do NOT have a price. Thus, can just store them in order of
+    // priority. Let's just use a vector of unique pointers?
+
+    // 2. How should limit orders be stored?
+    //
+    // Limit orders DO have a price. Can store them relative to their price time
+    // priority? Since the order is not necessarily sequential, it is best to 
+    // use red-black trees for O(log(n)) insertion and retreival.
+
+    // 3.
 
 
 
-
-
-
-    // Ask the user which security they would like to buy
-
-    // ptime t{microsec_clock::local_time()};
-    // // printTime(std::move(t));
-    // std::cout << "Time: " << t << std::endl;
-
-    // Order o1{OrderType::kMarket, 0, false, 2, 430.0, 0.0, false, t};
-    // Order o2{OrderType::kMarket, 0, false, 2, 430.1, 0.0, false, t};
-    // OrderBook ob{};
-    // ob.addOrder(o1);
-    // ob.addOrder(o2);
-    // ob.print();
-
-    // StopOrderBook<true> s;
-    // s.addOrder(o1);
 }
 
-
-// What all does the exchange need to do?
-// 1. Everytime a new order comes in, try to match it
-// 2. Store orders that are not yet active: maybe store in order of which 
-// orders will become active
-
-// How to store orders that are not yet active?
-// What determines when those orders become active?
-    // the price of the financial instrument going above or below a stop price
-    // above or below is determined by the stop price
-    // ex: currently, stock is at 220
-    // stop order 1 says once stock hits 260, sell (lock in profits)
-    // stop order 2 says once stock hits 200, sell (protect losses)
-// So how can I store inactive orders efficiently?
-    // a mapping of each financial instrument to an "inactive order book"
-// stop/stop-limit orders become active at a target price
-// target price or better (I'm assuming)
-// each financial instrument should have a sort of queue. 

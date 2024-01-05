@@ -39,7 +39,7 @@ public:
     ~BaseOrder() = default; // default destructor
 
     // prints relevant order details
-    virtual void print() {
+    virtual void print() const noexcept{
         cout << "Order #" << order_id_ << "\n";
         cout << "Security ID: " << security_id_ << "\n";
         cout << "Quantity: " << quantity_ << "\n";
@@ -49,6 +49,12 @@ public:
         cout << "Time: " << timestamp_ << "\n";
         cout << "---------------------------\n\n";
     }
+
+    OrderType getOrderType() const noexcept{
+        return order_type_;
+    }
+
+private:
 
     const uint64_t order_id_{};    // a unique identifier is given to each order
     const uint64_t security_id_{}; // identifies security that this order targets

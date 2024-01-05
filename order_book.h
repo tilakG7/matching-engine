@@ -3,7 +3,7 @@
 #include <cmath>
 #include <set>
 
-#include "order.h"
+#include "orders/base_order.h"
 
 // Returns true if 2 floating point types are equal
 // @todo: increase precision of comparison?
@@ -16,7 +16,7 @@ bool fp_equals(double a, double b) {
 // a container
 // @returns - true if a should be placed before b, else false
 struct OrderCmp {
-    bool operator()(const Order& a, const Order& b) const {
+    bool operator()(const unqiue_ptr<BaseOrder>& a, const unique_ptr<BaseOrder>& b) const {
         if(a.is_bid) {
             if (fp_equals(a.limit_price, b.limit_price)) {
                 return (a.time_received < b.time_received);
@@ -40,7 +40,7 @@ class OrderBook {
 public:
     OrderBook() = default;
 
-    void addOrder(Order my_order) {
+    void addOrder(unique_ptr<BaseOrder> order_ptr) {
         orders_.emplace(my_order);
     }
 
@@ -58,5 +58,5 @@ public:
         }
     }
 private:
-    std::set<Order, OrderCmp> orders_; // stores all orders
+    std::set<unique_ptr<BaseOrder>, OrderCmp> orders_; // stores all orders
 };
