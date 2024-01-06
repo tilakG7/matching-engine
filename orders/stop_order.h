@@ -13,11 +13,16 @@ public:
         order_type_ = OrderType::kStop;
     }
 
-    virtual void print() override final {
+    virtual void print() const noexcept override {
         std::cout << "Stop price: " << stop_price_ << "\n";
         std::cout << "Must exceed SP: " << (exceed_ ? "true" : "false") << "\n";
         MarketOrder::print();
     }
+    
+    virtual double getInterestingPrice() const noexcept override{
+        return stop_price_;
+    }
+
     double stop_price_{};
     bool exceed_{};
 }; // class StopOrder

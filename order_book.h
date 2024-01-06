@@ -16,24 +16,25 @@ bool fp_equals(double a, double b) {
 // a container
 // @returns - true if a should be placed before b, else false
 struct OrderCmp {
-    bool operator()(const unqiue_ptr<BaseOrder>& a, const unique_ptr<BaseOrder>& b) const {
-        if(a.is_bid) {
-            if (fp_equals(a.limit_price, b.limit_price)) {
-                return (a.time_received < b.time_received);
+    bool operator()(const unique_ptr<BaseOrder>& a, const unique_ptr<BaseOrder>& b) const {
+        double a_price{a->getInterestingPrice()};
+        double b_price{b->getInterestingPrice()};
+        if(a->is_bid_) {
+            if (fp_equals(a_price, b_price)) {
+                return (a->timestamp_ < b->timestamp_);
             }
             // higher bids get to come first
-            return (a.limit_price > b.limit_price);
+            return (a_price > b_price);
         } 
         // if we reach this point, we know 
         // we are dealing with orders "ask" orders
-        if (fp_equals(a.limit_price, b.limit_price)) {
-            return (a.time_received < b.time_received);
+        if (fp_equals(a_price, b_price)) {
+            return (a->timestamp_ < b->timestamp_);
         }
         // lower asks get to come first
-        return (a.limit_price < b.limit_price);
+        return (a_price < b_price);
     }
 };
-
 
 // Only orders that are active make it into the orderbook
 class OrderBook {
@@ -41,22 +42,9 @@ public:
     OrderBook() = default;
 
     void addOrder(unique_ptr<BaseOrder> order_ptr) {
-        orders_.emplace(my_order);
+        orders_.emplace(std::move(order_ptr));
     }
 
-    void print() {
-        std::cout << "Sequentially printing orders: \n";
-        for (auto& order : orders_) {
-            std::cout << "type: " << kOrderTypeStrings[
-                static_cast<std::underlying_type_t<OrderType>>(order.type)] << std::endl;
-            std::cout << "id: " << order.symbol_id << std::endl;
-            std::cout << (order.is_bid ? "bid" : "ask") << std::endl;
-            std::cout << "quantity: " << order.num << std::endl;
-            std::cout << "price: " << order.limit_price << std::endl;
-            std::cout << "time: " << order.time_received << std::endl;
-            std::cout << "----------------------------------" << std::endl;
-        }
-    }
 private:
     std::set<unique_ptr<BaseOrder>, OrderCmp> orders_; // stores all orders
 };

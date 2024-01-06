@@ -13,9 +13,13 @@ public:
               limit_price_{limit_price} {}
     ~LimitOrder() = default;
 
-    virtual void print() override {
+    virtual void print() const noexcept override{
         std::cout << "Limit Price: " << limit_price_ << "\n";
         BaseOrder::print();
+    }
+
+    virtual double getInterestingPrice() const noexcept override{
+        return limit_price_;
     }
 
 private: 

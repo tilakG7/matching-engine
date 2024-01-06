@@ -50,17 +50,16 @@ public:
         cout << "---------------------------\n\n";
     }
 
-    OrderType getOrderType() const noexcept{
-        return order_type_;
+    virtual double getInterestingPrice() const noexcept {
+        return 0;
     }
 
+    const bool is_bid_{};
+    ptime timestamp_{};            // time the order was received       
+    OrderType order_type_{};       
 private:
-
     const uint64_t order_id_{};    // a unique identifier is given to each order
     const uint64_t security_id_{}; // identifies security that this order targets
     uint64_t quantity_{};          // number of security to buy or sell
-    OrderType order_type_{};       
-    const bool is_bid_{};
-    ptime timestamp_{};            // time the order was received       
 };
 

@@ -14,13 +14,18 @@ public:
               LimitOrder(order_id, security_id, quantity, is_bid, limit_price) {
         order_type_ = OrderType::kStopLimit;
     }
-    double stop_price_{};
-    bool exceed_{};
 
-    virtual void print() override final {
+    virtual double getInterestingPrice() const noexcept override{
+        return stop_price_;
+    }
+
+    virtual void print() const noexcept override final {
         std::cout << "Stop price: " << stop_price_ << "\n";
         std::cout << "Must exceed SP: " << (exceed_ ? "true" : "false") << "\n";
         LimitOrder::print();
     }
+
+    double stop_price_{};
+    bool exceed_{};
 }; // class StopLimitOrder
 

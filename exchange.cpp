@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 
+#include "order_book.h"
 #include "common/template_helper.h"
 #include "orders/base_order.h"
 #include "orders/limit_order.h"
@@ -37,6 +38,11 @@ public:
         }
         return price_map_.at(security_id);
     }
+
+    vector<unique_ptr<BaseOrder>> market_order_book_{};
+    OrderBook limit_order_book_{};
+    OrderBook stop_limit_order_book_{};
+    OrderBook stop_order_book_{};
 private:
     // maps id of financial security to struct containing more info
     const std::unordered_map<std::string, uint64_t>  security_map_{
@@ -60,8 +66,6 @@ private:
         {7, 703.37},
         {8, 344.47}
     };
-    
-    vector<unique_ptr> market_order_book_{};
 };
 
 
@@ -226,8 +230,11 @@ int main() {
 
     order->print();
 
-    if(order->getOrderType == OrderType::kMarket) {
-        market_order_book_.push_back(move(order)); // use std::move to avoid uneccessary copyingxs 
+    if(order->order_type_ == OrderType::kMarket) {
+        e.market_order_book_.push_back(move(order)); // use std::move to avoid uneccessary copyingxs 
+    }
+    else if (order->order_type_ == OrderType::kLimit) {
+        e.limit_order_book_.addOrder(move(order));
     }
 
 
