@@ -1,7 +1,9 @@
 #include <iostream>
 #include <set>
 #include <string>
-#include <vector>
+#include <utility>
+#include <queue>
+
 
 #include "order_book.h"
 #include "common/template_helper.h"
@@ -39,11 +41,67 @@ public:
         return price_map_.at(security_id);
     }
 
-    vector<unique_ptr<BaseOrder>> market_order_book_{};
-    OrderBook limit_order_book_{};
-    OrderBook stop_limit_order_book_{};
-    OrderBook stop_order_book_{};
+    void addOrder(uinque_ptr<BaseOrder> order) {
+        if(order->order_type_ == OrderType::kMarket) {
+            matchMarketOrder(std::move(order));
+        }
+        // else if (order->order_type_ == OrderType::kLimit) {
+        //     e.limit_order_book_.addOrder(std::move(order));
+        //     e.limit_order_book_.print();
+        // }
+        // else if(order->order_type_ == OrderType::kStopLimit) {
+        //     e.stop_limit_order_book_.addOrder(std::move(oder));
+        //     e.stop_limit_order_book_.print();
+        // }
+        // else if(order->orde_type_ == OrderType::kStop) {
+        //     e.stop_order_book_.addOrder(std::move(order));
+        //     e.stop_order_book_.print();
+        // }
+        // else {
+        //     std::cout << "Error: invalid order type." << std::endl;
+        // }
+    }
+
+    vector<unique_ptr<BaseOrder>> bid_market_order_book_{};
+    vector<unique_ptr<BaseOrder>> ask_market_order_book_{};
+    OrderBook bid_limit_order_book_{};
+    OrderBook ask_limit_order_book_{};
+    OrderBook bid_stop_limit_order_book_{};
+    OrderBook bid_stop_order_book_{};
 private:
+    void completeOrder(unique_ptr<BaseOrder> order) {
+        std::cout << "Order with order ID: " << order->order_id_ << " completed"
+                  << endl;
+    }
+    void matchMarketOrder(unique_ptr<BaseOrder> order) {
+        MOBPair &pair_ref{map_security_mo_[order->security_id_]};
+        if(order->is_bid_) {
+            // perform partial matches as possible
+            // iterate throught the orders that are on the sell side 
+            while(pair_ref.ask_side.size() && order->quantity_)
+            {
+                uint64_t ask_order_quantity = pair_ref.ask_side.front()->quantity;
+                if(ask_order_quantity == order->quantity_) {
+                    completeOrder(order);
+                    completeOrder(std::move(pair_ref.ask_side.front()));
+                    pair_ref.ask_side.pop();
+                }
+                else if(ask_order_quantity > order->quantity_) {
+                    pair_ref.ask_side.front()->quantity -= order_->quantity_;
+                    completeOrder(order);
+                }
+                else {
+                    order_quantity_ -= ask_order_quantity;
+                    completeOrder(std::move(pair_ref.ask_side.front()));
+                    pair_ref.ask_side.pop(); 
+                }
+            } 
+        } else {
+            
+
+        }
+
+    }
     // maps id of financial security to struct containing more info
     const std::unordered_map<std::string, uint64_t>  security_map_{
         {"TSLA", 1},
@@ -66,6 +124,23 @@ private:
         {7, 703.37},
         {8, 344.47}
     };
+
+    // market order book pair
+    struct MOBPair{
+        std::queue<unique_ptr<BaseOrder>> bid_side;
+        std::queue<unique_ptr<BaseOrder>> ask_side;
+    };
+
+    std::unordered_map<uint64_t, MOBPair> map_security_mo_{
+        {1, {{},{}}},
+        {2, {{},{}}},
+        {3, {{},{}}},
+        {4, {{},{}}},
+        {5, {{},{}}},
+        {6, {{},{}}},
+        {7, {{},{}}},
+        {8, {{},{}}}
+    }; // maps security to market orders
 };
 
 
@@ -116,7 +191,7 @@ int main() {
     bool is_valid_quantity{};
     int quantity{};
     do {
-        cout << "Enter quantity to " << (is_bid ? "sell" : "buy") << ": ";
+        cout << "Enter quantity to " << (is_bid ? "buy" : "sell") << ": ";
         string str_quantity{};
         cin >> str_quantity;
         try {
@@ -229,31 +304,32 @@ int main() {
     }
 
     order->print();
-
-    if(order->order_type_ == OrderType::kMarket) {
-        e.market_order_book_.push_back(move(order)); // use std::move to avoid uneccessary copyingxs 
-    }
-    else if (order->order_type_ == OrderType::kLimit) {
-        e.limit_order_book_.addOrder(move(order));
-    }
+    e.addOrder(std::move(order));
 
 
+
+    // Notes on storing orders:
+    // Each security needs its own store of orders
+    // for bid and ask sides
     
-    // What are the next steps once we have an order that needs to be placed?
-    // I guess it depends on the type of order.
+    // 1. How to store market orders?
+    // No price.
+    // Thus, store in order of arrival.
+    // Vector of unique pointers?
 
-    // 1. How should market orders be stored?
-    //
-    // Market order do NOT have a price. Thus, can just store them in order of
-    // priority. Let's just use a vector of unique pointers?
+    // 2. How to store limit orders?
+    // Have limit price.
+    // Must store relative to price time priority
+    // Order is not sequential like market orders
+    // Use red-black trees for O(log(n)) insertion and retreival.
 
-    // 2. How should limit orders be stored?
-    //
-    // Limit orders DO have a price. Can store them relative to their price time
-    // priority? Since the order is not necessarily sequential, it is best to 
-    // use red-black trees for O(log(n)) insertion and retreival.
-
-    // 3.
+    // 3. Matching strategy:
+    // Runs every time the security price is updated
+    // 
+    // 3a. Market order:
+    //     Check if matching order on bid/ask side 
+    //     Perform partial/full match
+    //     Store remaining orders in queue
 
 
 

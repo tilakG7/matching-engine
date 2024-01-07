@@ -45,6 +45,17 @@ public:
         orders_.emplace(std::move(order_ptr));
     }
 
+    // prints all the orders in an order book
+    void print() {
+        uint64_t counter{};
+        for(const auto &ptr : orders_) {
+            counter++;
+            std::cout << "Printing order #" << counter << std::endl;
+            ptr->print();
+            std::cout << "----------------";
+        }
+    }
+
 private:
     std::set<unique_ptr<BaseOrder>, OrderCmp> orders_; // stores all orders
 };
