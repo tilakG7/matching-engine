@@ -58,8 +58,7 @@ public:
     ptime timestamp_{};            // time the order was received       
     OrderType order_type_{};       
     const uint64_t security_id_{}; // identifies security that this order targets
-private:
-    const uint64_t order_id_{};    // a unique identifier is given to each order
     uint64_t quantity_{};          // number of security to buy or sell
+    const uint64_t order_id_{};    // a unique identifier is given to each order
 };
 

@@ -41,7 +41,7 @@ public:
         return price_map_.at(security_id);
     }
 
-    void addOrder(uinque_ptr<BaseOrder> order) {
+    void addOrder(unique_ptr<BaseOrder> order) {
         if(order->order_type_ == OrderType::kMarket) {
             matchMarketOrder(std::move(order));
         }
@@ -73,34 +73,74 @@ private:
         std::cout << "Order with order ID: " << order->order_id_ << " completed"
                   << endl;
     }
+
     void matchMarketOrder(unique_ptr<BaseOrder> order) {
         MOBPair &pair_ref{map_security_mo_[order->security_id_]};
         if(order->is_bid_) {
             // perform partial matches as possible
-            // iterate throught the orders that are on the sell side 
+            // iterate throught the orders that are on the ask side 
             while(pair_ref.ask_side.size() && order->quantity_)
             {
-                uint64_t ask_order_quantity = pair_ref.ask_side.front()->quantity;
+                // get the quantity of shares from most recent
+                // ask order
+                uint64_t ask_order_quantity = pair_ref.ask_side.front()->quantity_;
                 if(ask_order_quantity == order->quantity_) {
-                    completeOrder(order);
+                    // this case means both the bid and ask orders are complete
+                    completeOrder(std::move(order));
                     completeOrder(std::move(pair_ref.ask_side.front()));
                     pair_ref.ask_side.pop();
                 }
                 else if(ask_order_quantity > order->quantity_) {
-                    pair_ref.ask_side.front()->quantity -= order_->quantity_;
-                    completeOrder(order);
+                    // this means that the ask order get's partially completed.
+                    // whereas the bid order is completed!
+                    pair_ref.ask_side.front()->quantity_ -= order->quantity_;
+                    completeOrder(std::move(order));
                 }
                 else {
-                    order_quantity_ -= ask_order_quantity;
+                    // this means the original order is partially completed
+                    // the ask order is completed
+                    order->quantity_ -= ask_order_quantity;
                     completeOrder(std::move(pair_ref.ask_side.front()));
                     pair_ref.ask_side.pop(); 
                 }
-            } 
+            }
+            // if some/all of the original order is still not fulfilled,
+            // queue it
+            if(order) {
+                if(order->quantity_ > 0) {
+                    pair_ref.bid_side.push(std::move(order));
+                }
+            }
+
         } else {
-            
+            // original order is an ask
 
+            // try to match original order with bid side
+            while(order->quantity_ && pair_ref.bid_side.size()) {
+                uint64_t bid_order_quantity{pair_ref.bid_side.front()->quantity_};
+                if(bid_order_quantity == order->quantity_) {
+                    completeOrder(std::move(order));
+                    completeOrder(std::move(pair_ref.bid_side.front()));
+                    pair_ref.bid_side.pop();
+                }
+                else if(bid_order_quantity > order->quantity_) {
+                    pair_ref.bid_side.front()->quantity_ -= order->quantity_;
+                    completeOrder(std::move(order));
+                }
+                else {
+                    order->quantity_ -= pair_ref.bid_side.front()->quantity_;
+                    completeOrder(std::move(pair_ref.bid_side.front()));
+                    pair_ref.bid_side.pop();
+                }
+            }
+            if(order) {
+                if(order->quantity_ > 0) {
+                    // order has not been completed and there are no possible
+                    // matches from the bid side at this moment
+                    pair_ref.ask_side.push(std::move(order));
+                }
+            }
         }
-
     }
     // maps id of financial security to struct containing more info
     const std::unordered_map<std::string, uint64_t>  security_map_{
@@ -127,19 +167,20 @@ private:
 
     // market order book pair
     struct MOBPair{
+        MOBPair() = default; 
         std::queue<unique_ptr<BaseOrder>> bid_side;
         std::queue<unique_ptr<BaseOrder>> ask_side;
     };
 
     std::unordered_map<uint64_t, MOBPair> map_security_mo_{
-        {1, {{},{}}},
-        {2, {{},{}}},
-        {3, {{},{}}},
-        {4, {{},{}}},
-        {5, {{},{}}},
-        {6, {{},{}}},
-        {7, {{},{}}},
-        {8, {{},{}}}
+        {1, },
+        {2, },
+        {3, },
+        {4, },
+        {5, },
+        {6, },
+        {7, },
+        {8, }
     }; // maps security to market orders
 };
 
@@ -330,8 +371,5 @@ int main() {
     //     Check if matching order on bid/ask side 
     //     Perform partial/full match
     //     Store remaining orders in queue
-
-
-
 }
 
