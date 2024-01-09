@@ -16,7 +16,9 @@
 
 class Exchange {
 public:
-    Exchange() = default;
+    Exchange() {
+        map_security_mo_.insert(std::pair<uint64_t, MOBPair>{1, {{}, {}}});
+    }
     ~Exchange() = default;
 
     // checks whether a security exists (given my string name)
@@ -172,16 +174,7 @@ private:
         std::queue<unique_ptr<BaseOrder>> ask_side;
     };
 
-    std::unordered_map<uint64_t, MOBPair> map_security_mo_{
-        {1, },
-        {2, },
-        {3, },
-        {4, },
-        {5, },
-        {6, },
-        {7, },
-        {8, }
-    }; // maps security to market orders
+    std::unordered_map<uint64_t, MOBPair> map_security_mo_{}; // maps security to market orders
 };
 
 
