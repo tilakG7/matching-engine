@@ -16,7 +16,7 @@
 
 class Exchange {
 public:
-    Exchange() {
+    Exchange() { 
         map_security_mo_.insert(std::pair<uint64_t, MOBPair>{1, {{}, {}}});
     }
     ~Exchange() = default;
