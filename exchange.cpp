@@ -1,3 +1,4 @@
+#include <fstream>
 #include <iostream>
 #include <set>
 #include <string>
@@ -16,8 +17,10 @@
 
 class Exchange {
 public:
-    Exchange() { 
-        map_security_mo_.insert(std::pair<uint64_t, MOBPair>{1, {{}, {}}});
+    Exchange() {
+        for(uint32_t security_id{1U}; security_id <= kNumSecurities; security_id++) {
+            map_security_mo_[security_id] = MOBPair();
+        }
     }
     ~Exchange() = default;
 
@@ -47,10 +50,9 @@ public:
         if(order->order_type_ == OrderType::kMarket) {
             matchMarketOrder(std::move(order));
         }
-        // else if (order->order_type_ == OrderType::kLimit) {
-        //     e.limit_order_book_.addOrder(std::move(order));
-        //     e.limit_order_book_.print();
-        // }
+        else if (order->order_type_ == OrderType::kLimit) {
+            matchLimitOrder(std::move(order));
+        }
         // else if(order->order_type_ == OrderType::kStopLimit) {
         //     e.stop_limit_order_book_.addOrder(std::move(oder));
         //     e.stop_limit_order_book_.print();
@@ -76,12 +78,71 @@ private:
                   << endl;
     }
 
+    void completeOrderWithMarketOrder(std::unique_ptr<BaseOrder> order_to_complete, bool mo_is_bid) {
+        if(mo_is_bid) {
+            completeOrder(std::move(
+                map_security_mo_[order_to_complete->security_id_].bid_side.front()));
+            map_security_mo_[order_to_complete->security_id_].bid_side.pop();
+        } else {
+            completeOrder(std::move(
+                map_security_mo_[order_to_complete->security_id_].ask_side.front()));
+            map_security_mo_[order_to_complete->security_id_].ask_side.pop();
+
+        }
+        completeOrder(order_to_complete);
+    }
+
+    void completeOrderWithLimitOrder(std::unique_ptr<BaseOrder> order_to_complete, bool lo_is_bid) {
+        if(lo_is_bid) {
+            
+
+        } else {
+
+        }
+        completeOrder(order_to_complete);
+    }
+
+    void matchLimitOrder(unique_ptr<BaseOrder> order) {
+        bool market_match_possible{};
+        bool limit_match_possible{};
+
+        if(order->is_bid_) {
+            market_match_possible = (price_map_[order->security_id_] <= order->limit_price_) && map_security_mo_.ask_side.size();
+            limit_match_possible =  map_security_lo_.getSize() && map_security_lo_.peek()->limit_price <= order->limit_price;
+
+            double market_price{};
+            double limit_order_price{};
+            if(market_match_possible && limit_match_possible) {
+                market_price = price_map_[order->security_id_];
+                limit_order = map_security_lo.peek()->limit_price;
+                if(market_price < limit_price) {
+                    completeOrderWithMarketOrder(std::move(order), !order->is_bid_);
+                }
+                else {
+                    completeOrderWithLimitOrder(std::move(order), !order->is_bid_);
+                }
+            }
+            else if(limit_order_price) {
+                // match w limit order
+            }
+            else if(market_order_price) {
+                // match w market order
+            }
+            else {
+                // add order to limit order book
+                map_security_lo_.bid_side.addOrder(std::move(order));
+            }
+        } else {
+            
+        }
+    }
+
     void matchMarketOrder(unique_ptr<BaseOrder> order) {
         MOBPair &pair_ref{map_security_mo_[order->security_id_]};
         if(order->is_bid_) {
             // perform partial matches as possible
             // iterate throught the orders that are on the ask side 
-            while(pair_ref.ask_side.size() && order->quantity_)
+            while(pair_ref.ask_side.size() && order)
             {
                 // get the quantity of shares from most recent
                 // ask order
@@ -166,6 +227,7 @@ private:
         {7, 703.37},
         {8, 344.47}
     };
+    static inline constexpr uint32_t kNumSecurities{8};
 
     // market order book pair
     struct MOBPair{
@@ -174,7 +236,14 @@ private:
         std::queue<unique_ptr<BaseOrder>> ask_side;
     };
 
+    // limit order book pair
+    struct LOBPair{
+        OrderBook bid_side;
+        OrderBook ask_side;
+    }
+
     std::unordered_map<uint64_t, MOBPair> map_security_mo_{}; // maps security to market orders
+    std::unordered_map<uint64_t, LOBPair> map_secuirty_lo_{};
 };
 
 
@@ -185,11 +254,9 @@ void printTime(ptime &&t) {
     std::cout << "clock right now: " << t << "\n";
 }
 
-int main() {
-    Exchange e{};
+std::unique_ptr<BaseOrder> getUserInput(Exchange &e) {
     unique_ptr<BaseOrder> order{};
-
-    // get the security ticker symbol
+        // get the security ticker symbol
     std::string ticker{};
     do {
         std::cout << "Enter security symbol: ";
@@ -333,14 +400,161 @@ int main() {
             (stop_price > e.getCurrentSharePrice(e.getSecurityId(ticker))) ? true : false));
         break;
         default:
-            cout << "Unknown order type. Exiting" << endl;
-            return -1;
+        break;
     }
 
-    order->print();
-    e.addOrder(std::move(order));
+    return order;
+}
+
+std::unique_ptr<BaseOrder> getNextOrderFromFile(Exchange &e, std::stringstream &csv_line_ss) {
+    std::unique_ptr<BaseOrder> order; // to be constructed and returned
+    std::string next_item; // where the next item from the CSV line will be populated
+    
+    // Read the ticket sybmol
+    std::string ticker;
+    std::getline(csv_line_ss, ticker, ',');
+    if(!e.securityExists(ticker)) {
+        cout << "Error: invalid security. Try again.\n";
+        cout << "\"" << ticker << "\" does not exist in the exchange.";
+        return nullptr;
+    }
+
+    // Order is a bid or an ask
+    bool is_bid{};
+    std::getline(csv_line_ss, next_item, ',');
+    if (next_item == "bid") {
+        is_bid = true;
+    } else if (next_item == "ask") {
+        is_bid = false;
+    } else {
+        cout << "Error: \"" << next_item << "\" unclear whether order is bid or ask. Try again.\n";
+        return nullptr;
+    }
+    
+    // get quantity of shares to buy/sell
+    std::getline(csv_line_ss, next_item, ',');
+    int order_quantity{};
+    order_quantity = std::stoi(next_item);
+    if(order_quantity <= 0) {
+        cout << "Quantity must not be negative or 0. Try again.\n" << endl;
+        return nullptr;
+    } 
+
+    // get the type of order
+    OrderType ot{};
+    std::getline(csv_line_ss, next_item, ',');
+    if(next_item == "market") {
+        ot = OrderType::kMarket;
+    }
+    else if(next_item == "stop") {
+        ot = OrderType::kStop;
+    }
+    else if(next_item == "limit") {
+        ot = OrderType::kLimit;
+    }
+    else if(next_item == "stop limit") {
+        ot = OrderType::kStopLimit;
+    } else {
+        cout << "Invalid order type";
+        return nullptr;
+    }
 
 
+    double limit_price{};
+    double stop_price{};
+
+    // get the limit price, if applicable
+    if(ot == OrderType::kLimit || ot == OrderType::kStopLimit) {
+        std::getline(csv_line_ss, next_item, ',');
+
+        try{
+            limit_price = std::stod(next_item);
+        } catch(...) {
+            cout << "Invalid double entered for limit price\n";
+            return nullptr;
+        }
+    }
+
+    // get the stop price, if applicable
+    if(ot == OrderType::kStop || ot == OrderType::kStopLimit) { 
+        std::getline(csv_line_ss, next_item, ',');
+        try{
+            stop_price = std::stod(next_item);
+
+        } catch(...) {
+            cout << "Invalid double entered for stop price\n";
+            return nullptr;
+        }
+    }
+
+    // construct the order
+    switch(ot) {
+    case OrderType::kLimit:
+        order.reset(new LimitOrder(1234, 
+                                    e.getSecurityId(ticker), 
+                                    order_quantity, 
+                                    is_bid,
+                                    limit_price));
+    break;
+    case OrderType::kMarket:
+        order.reset(new MarketOrder(1234,
+                                    e.getSecurityId(ticker), 
+                                    order_quantity, 
+                                    is_bid));
+    break;
+    case OrderType::kStop:
+        order.reset(new StopOrder(1234,
+                                    e.getSecurityId(ticker), 
+                                    order_quantity,
+                                    is_bid,
+                                    stop_price,
+                                    (stop_price > e.getCurrentSharePrice(e.getSecurityId(ticker))) ? true : false));
+    break;
+    case OrderType::kStopLimit:
+        order.reset(new StopLimitOrder(1234,
+                                    e.getSecurityId(ticker),
+                                    order_quantity,
+                                    is_bid,
+                                    limit_price,
+                                    stop_price,
+                                    (stop_price > e.getCurrentSharePrice(e.getSecurityId(ticker))) ? true : false));
+    break;
+    default:
+    break;
+    }
+    return order;
+}
+int main() {
+    Exchange e{};
+
+    // setup reading from file
+    std::ifstream orders_file("orders.csv");
+    if(!orders_file.is_open()) {
+        std::cout << "Could not open file." << std::endl;
+        return 1;
+    }
+
+    std::unique_ptr<BaseOrder> order;
+    std::string csv_line;
+    while(std::getline(orders_file, csv_line)) {
+        std::stringstream csv_line_ss{csv_line};
+        order = getNextOrderFromFile(e, csv_line_ss);
+        if(!order) {
+            cout << "Error. Exiting.\n";
+            return 1;
+        }
+        order->print();
+        e.addOrder(std::move(order));
+    }
+
+    // What is a limit order?
+    // guaranteed to buy/sell at a specific price or better!
+    // How to match bid limit orders? (ask would be inverse)
+    // 1. Against ask market order if market price is lower than limit
+    // 2. Against other ask limit order if ask limit price < bid limit price
+    // Should we match a limit order against a market order or another limit order?
+    // * Depends on which would give the order a better match.   
+}
 
     // Notes on storing orders:
     // Each security needs its own store of orders
@@ -364,5 +578,3 @@ int main() {
     //     Check if matching order on bid/ask side 
     //     Perform partial/full match
     //     Store remaining orders in queue
-}
-

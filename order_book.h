@@ -45,6 +45,16 @@ public:
         orders_.emplace(std::move(order_ptr));
     }
 
+    std::size_t getSize() {
+        return orders_.size();
+    }
+
+    std::unique_ptr<BaseOrder>& peek() {
+        return *orders_.begin();
+    }
+
+
+
     // prints all the orders in an order book
     void print() {
         uint64_t counter{};
