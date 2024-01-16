@@ -6,8 +6,9 @@
 #include <queue>
 
 
-#include "order_book.h"
 #include "common/template_helper.h"
+#include "common/order_book.h"
+
 #include "orders/base_order.h"
 #include "orders/limit_order.h"
 #include "orders/market_order.h"
@@ -94,7 +95,7 @@ private:
 
     void completeOrderWithLimitOrder(std::unique_ptr<BaseOrder> order_to_complete, bool lo_is_bid) {
         if(lo_is_bid) {
-            
+
 
         } else {
 
