@@ -5,7 +5,6 @@
 #include <utility>
 #include <queue>
 
-
 #include "common/template_helper.h"
 #include "common/order_book.h"
 
@@ -15,12 +14,12 @@
 #include "orders/stop_limit_order.h"
 #include "orders/stop_order.h"
 
-
 class Exchange {
 public:
     Exchange() {
+        // initialize
         for(uint32_t security_id{1U}; security_id <= kNumSecurities; security_id++) {
-            map_security_mo_[security_id] = MOBPair();
+            market_order_book_[security_id] = MarketPair();
         }
     }
     ~Exchange() = default;
@@ -79,134 +78,121 @@ private:
                   << endl;
     }
 
-    void completeOrderWithMarketOrder(std::unique_ptr<BaseOrder> order_to_complete, bool mo_is_bid) {
-        if(mo_is_bid) {
-            completeOrder(std::move(
-                map_security_mo_[order_to_complete->security_id_].bid_side.front()));
-            map_security_mo_[order_to_complete->security_id_].bid_side.pop();
-        } else {
-            completeOrder(std::move(
-                map_security_mo_[order_to_complete->security_id_].ask_side.front()));
-            map_security_mo_[order_to_complete->security_id_].ask_side.pop();
-
-        }
-        completeOrder(order_to_complete);
-    }
-
-    void completeOrderWithLimitOrder(std::unique_ptr<BaseOrder> order_to_complete, bool lo_is_bid) {
-        if(lo_is_bid) {
-
-
-        } else {
-
-        }
-        completeOrder(order_to_complete);
-    }
-
     void matchLimitOrder(unique_ptr<BaseOrder> order) {
+        /** Limit order matching process:
+        * 1. 1st, attempt to match with market order
+        * 2. Next, attempt to match with limit order
+        *  If neither of the 2 work, then queue the limit order
+        * NOTE: 
+        * Could also see if both 1 & 2 are possible and take the better of the 2
+        * Not doing this case for simplicity
+        */
         bool market_match_possible{};
         bool limit_match_possible{};
 
         if(order->is_bid_) {
-            market_match_possible = (price_map_[order->security_id_] <= order->limit_price_) && map_security_mo_.ask_side.size();
-            limit_match_possible =  map_security_lo_.getSize() && map_security_lo_.peek()->limit_price <= order->limit_price;
-
-            double market_price{};
-            double limit_order_price{};
-            if(market_match_possible && limit_match_possible) {
-                market_price = price_map_[order->security_id_];
-                limit_order = map_security_lo.peek()->limit_price;
-                if(market_price < limit_price) {
-                    completeOrderWithMarketOrder(std::move(order), !order->is_bid_);
+            std::queue<unique_ptr<BaseOrder>> &ask_q  = market_order_book_[order->security_id_].ask_side;
+            OrderBook &ask_ob = limit_order_book_[order->security_id_].ask_side; // ask order book
+            
+            // check if a market match is possible
+            while(order && (price_map[order->security_id_] <= order->limit_price_) && (ask_q.size())) {
+                // get the quantity of shares from most recent market ask order
+                uint64_t num_ask = ask_q.front()->quantity_;
+                if(num_ask == order->quantity_) {
+                    // this case means both the bid and ask orders are complete
+                    completeOrder(std::move(order));
+                    completeOrder(std::move(ask_q.front()));
+                    ask_q.pop(); // remove completed order from queue
+                }
+                else if(num_ask > order->quantity_) {
+                    // this means that the ask order get's partially completed.
+                    // whereas the bid order is completed!
+                    ask_q.front()->quantity_ -= order->quantity_;
+                    completeOrder(std::move(order));
                 }
                 else {
-                    completeOrderWithLimitOrder(std::move(order), !order->is_bid_);
-                }
+                    // this means the original order is partially completed
+                    // the ask order is completed
+                    order->quantity_ -= num_ask;
+                    completeOrder(std::move(ask_q.front()));
+                    ask_q.pop(); 
+                } 
             }
-            else if(limit_order_price) {
-                // match w limit order
-            }
-            else if(market_order_price) {
-                // match w market order
-            }
-            else {
-                // add order to limit order book
-                map_security_lo_.bid_side.addOrder(std::move(order));
-            }
+
+            // check if a limit match is possible
+            while(order && )
         } else {
             
         }
     }
 
     void matchMarketOrder(unique_ptr<BaseOrder> order) {
-        MOBPair &pair_ref{map_security_mo_[order->security_id_]};
+        std::queue<unique_ptr<BaseOrder>> &ask_q  = market_order_book_[order->security_id_].ask_side;
+        std::queue<unique_ptr<BaseOrder>> &bid_q  = market_order_book_[order->security_id_].bid_side;
+        
         if(order->is_bid_) {
-            // perform partial matches as possible
-            // iterate throught the orders that are on the ask side 
-            while(pair_ref.ask_side.size() && order)
+            // perform partial matches if possible
+            // to perform matches, ask-side queue must be non-empty and our
+            // order must not have yet been filled
+            while(ask_q.size() && order)
             {
-                // get the quantity of shares from most recent
-                // ask order
-                uint64_t ask_order_quantity = pair_ref.ask_side.front()->quantity_;
-                if(ask_order_quantity == order->quantity_) {
+                // get the quantity of shares from most recent market ask order
+                uint64_t num_ask = ask_q.front()->quantity_;
+                if(num_ask == order->quantity_) {
                     // this case means both the bid and ask orders are complete
                     completeOrder(std::move(order));
-                    completeOrder(std::move(pair_ref.ask_side.front()));
-                    pair_ref.ask_side.pop();
+                    completeOrder(std::move(ask_q.front()));
+                    ask_q.pop(); // remove completed order from queue
                 }
-                else if(ask_order_quantity > order->quantity_) {
+                else if(num_ask > order->quantity_) {
                     // this means that the ask order get's partially completed.
                     // whereas the bid order is completed!
-                    pair_ref.ask_side.front()->quantity_ -= order->quantity_;
+                    ask_q.front()->quantity_ -= order->quantity_;
                     completeOrder(std::move(order));
                 }
                 else {
                     // this means the original order is partially completed
                     // the ask order is completed
-                    order->quantity_ -= ask_order_quantity;
-                    completeOrder(std::move(pair_ref.ask_side.front()));
-                    pair_ref.ask_side.pop(); 
+                    order->quantity_ -= num_ask;
+                    completeOrder(std::move(ask_q.front()));
+                    ask_q.pop(); 
                 }
             }
-            // if some/all of the original order is still not fulfilled,
-            // queue it
+            // queue original order
             if(order) {
-                if(order->quantity_ > 0) {
-                    pair_ref.bid_side.push(std::move(order));
-                }
+                bid_q.push(std::move(order));
             }
-
         } else {
             // original order is an ask
 
             // try to match original order with bid side
-            while(order->quantity_ && pair_ref.bid_side.size()) {
-                uint64_t bid_order_quantity{pair_ref.bid_side.front()->quantity_};
-                if(bid_order_quantity == order->quantity_) {
+            while(order && bid_q.size()) {
+                uint64_t num_bid{bid_q.front()->quantity_};
+                if(num_bid == order->quantity_) {
                     completeOrder(std::move(order));
-                    completeOrder(std::move(pair_ref.bid_side.front()));
-                    pair_ref.bid_side.pop();
+                    completeOrder(std::move(bid_q.front()));
+                    bid_q.pop();
                 }
-                else if(bid_order_quantity > order->quantity_) {
-                    pair_ref.bid_side.front()->quantity_ -= order->quantity_;
+                else if(num_bid > order->quantity_) {
+                    bid_q.front()->quantity_ -= order->quantity_;
                     completeOrder(std::move(order));
                 }
                 else {
-                    order->quantity_ -= pair_ref.bid_side.front()->quantity_;
-                    completeOrder(std::move(pair_ref.bid_side.front()));
-                    pair_ref.bid_side.pop();
+                    order->quantity_ -= bid_q.front()->quantity_;
+                    completeOrder(std::move(bid_q.front()));
+                    bid_q.pop();
                 }
             }
             if(order) {
-                if(order->quantity_ > 0) {
-                    // order has not been completed and there are no possible
-                    // matches from the bid side at this moment
-                    pair_ref.ask_side.push(std::move(order));
-                }
+                // order has not been completed and there are no possible
+                // matches from the bid side at this moment
+                ask_q.push(std::move(order));
             }
         }
     }
-    // maps id of financial security to struct containing more info
+
+    // maps id of financial security to a unique identifier
+    // unique identifier can be used to get more information about the security
     const std::unordered_map<std::string, uint64_t>  security_map_{
         {"TSLA", 1},
         {"AMZN", 2},
@@ -218,6 +204,7 @@ private:
         {"META", 8}
     };
 
+    // maps security ids to their respective prices
     const std::unordered_map<uint64_t, double> price_map_{
         {1, 238.45},
         {2, 148.47},
@@ -231,20 +218,21 @@ private:
     static inline constexpr uint32_t kNumSecurities{8};
 
     // market order book pair
-    struct MOBPair{
-        MOBPair() = default; 
+    struct MarketPair{
+        MarketPair() = default; 
         std::queue<unique_ptr<BaseOrder>> bid_side;
         std::queue<unique_ptr<BaseOrder>> ask_side;
     };
 
     // limit order book pair
-    struct LOBPair{
+    struct LimitPair{
+        LimitPair() = default;
         OrderBook bid_side;
         OrderBook ask_side;
     }
 
-    std::unordered_map<uint64_t, MOBPair> map_security_mo_{}; // maps security to market orders
-    std::unordered_map<uint64_t, LOBPair> map_secuirty_lo_{};
+    std::unordered_map<uint64_t, MarketPair> market_order_book_{}; // maps securities to market orders
+    std::unordered_map<uint64_t, LimitPair> limit_order_book_{};  // maps securities to limit orders
 };
 
 
