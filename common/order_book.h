@@ -15,9 +15,8 @@ bool fp_equals(double a, double b) {
 // This is a binary predicate function for determining ordering of elements in 
 // a container
 // @returns - true if a should be placed before b, else false
-template<typename T>
 struct OrderCmp {
-    bool operator()(const unique_ptr<T>& a, const unique_ptr<t>& b) const {
+    bool operator()(const unique_ptr<BaseOrder>& a, const unique_ptr<BaseOrder>& b) const {
         double a_price{a->getInterestingPrice()};
         double b_price{b->getInterestingPrice()};
         if(a->is_bid_) {
@@ -37,12 +36,12 @@ struct OrderCmp {
     }
 };
 
-template<typename T>
+
 class OrderBook {
 public:
     OrderBook() = default;
 
-    void addOrder(unique_ptr<T> order_ptr) {
+    void addOrder(unique_ptr<BaseOrder> order_ptr) {
         orders_.emplace(std::move(order_ptr));
     }
 
@@ -50,8 +49,17 @@ public:
         return orders_.size();
     }
 
-    std::unique_ptr<T>& peek() {
-        return *orders_.begin();
+    std::unique_ptr<BaseOrder>& peek() {
+        if(!orders_.empty()) {
+            return *orders_.begin();
+        }
+        else {
+            return nullptr;
+        }
+    }
+
+    void remove() {
+        orders_.erase(orders_.begin());
     }
 
 
@@ -68,5 +76,5 @@ public:
     }
 
 private:
-    std::set<unique_ptr<T>, OrderCmp> orders_; // stores all orders
+    std::set<unique_ptr<BaseOrder>, OrderCmp> orders_; // stores all orders
 };
