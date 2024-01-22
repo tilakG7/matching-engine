@@ -10,7 +10,7 @@
 bool fp_equals(double a, double b) {
     return (std::abs(a - b)) < 0.01; // true if differce is less than a cent
 }
-
+ 
 // Returns true if order A should be placed before order B
 // This is a binary predicate function for determining ordering of elements in 
 // a container
